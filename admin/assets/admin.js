@@ -1,57 +1,504 @@
+
 (() => {
   'use strict';
+
   const API = 'https://api.vinkasar.my.id';
-  const $ = (s, root=document) => root.querySelector(s);
-  const $$ = (s, root=document) => [...root.querySelectorAll(s)];
-  let challengeId = null, editingVideo = null, editingJournal = null;
-  let videoCache = [], journalCache = [];
-  const categories = ['Travel Stories','Personal Journey','Modeling Experiences','Beauty and Bridal Makeup','Communication Studies','Creative Diary'];
-  const settingsFields = [
-    ['site_title','Nama Website','text'],['owner_name','Nama Pemilik','text'],['tagline','Tagline','text'],['hero_intro','Perkenalan Hero','textarea'],
-    ['hero_image','Foto Hero','image'],['about_heading','Judul About Me','text'],['about_paragraph_1','Paragraf About Me 1','textarea'],['about_paragraph_2','Paragraf About Me 2','textarea'],['about_image','Foto About Me','image'],
-    ['portfolio_intro','Deskripsi Portfolio','textarea'],['travel_image','Foto Traveling','image'],['modeling_image','Foto Modeling','image'],['bridal_image','Foto Bridal Makeup','image'],['behind_the_scenes','Behind the Scenes','textarea'],['goals_intro','Deskripsi My Goals','textarea'],['quote','Quote Website','textarea'],['instagram_url','Link Instagram','text'],['instagram_username','Username Instagram','text'],['video_default_image','Thumbnail Video Default','image'],['journal_default_image','Sampul Jurnal Default','image']
+  const $ = (s, root = document) => root.querySelector(s);
+  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+
+  let editingVideo = null;
+  let editingJournal = null;
+  let videoCache = [];
+  let journalCache = [];
+
+  const categories = [
+    'Travel Stories',
+    'Personal Journey',
+    'Modeling Experiences',
+    'Beauty and Bridal Makeup',
+    'Communication Studies',
+    'Creative Diary'
   ];
-  async function api(path, options={}) {
-    const opts = { ...options, credentials:'include', headers:{ ...(options.headers||{}) } };
-    if (opts.body && !(opts.body instanceof FormData)) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(opts.body); }
-    const res = await fetch(API+path, opts);
-    const data = await res.json().catch(()=>({error:'Respons server tidak valid.'}));
-    if (!res.ok) { if (res.status===401 && path.startsWith('/admin/')) showLogin(); throw new Error(data.error || `Permintaan gagal (${res.status})`); }
+
+  const settingsFields = [
+    ['site_title','Nama Website','text'],
+    ['owner_name','Nama Pemilik','text'],
+    ['tagline','Tagline','text'],
+    ['hero_intro','Perkenalan Hero','textarea'],
+    ['hero_image','Foto Hero','image'],
+    ['about_heading','Judul About Me','text'],
+    ['about_paragraph_1','Paragraf About Me 1','textarea'],
+    ['about_paragraph_2','Paragraf About Me 2','textarea'],
+    ['about_image','Foto About Me','image'],
+    ['portfolio_intro','Deskripsi Portfolio','textarea'],
+    ['travel_image','Foto Traveling','image'],
+    ['modeling_image','Foto Modeling','image'],
+    ['bridal_image','Foto Bridal Makeup','image'],
+    ['behind_the_scenes','Behind the Scenes','textarea'],
+    ['goals_intro','Deskripsi My Goals','textarea'],
+    ['quote','Quote Website','textarea'],
+    ['instagram_url','Link Instagram','text'],
+    ['instagram_username','Username Instagram','text'],
+    ['video_default_image','Thumbnail Video Default','image'],
+    ['journal_default_image','Sampul Jurnal Default','image']
+  ];
+
+  async function api(path, options = {}) {
+    const opts = {
+      ...options,
+      credentials: 'include',
+      headers: { ...(options.headers || {}) }
+    };
+
+    if (opts.body && !(opts.body instanceof FormData)) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(opts.body);
+    }
+
+    const res = await fetch(API + path, opts);
+    const data = await res.json().catch(() => ({
+      error: 'Respons server tidak valid.'
+    }));
+
+    if (!res.ok) {
+      if (res.status === 401 && path.startsWith('/admin/')) showLogin();
+      throw new Error(data.error || `Permintaan gagal (${res.status})`);
+    }
+
     return data;
   }
-  function toast(message, error=false) { const el=$('#toast'); el.textContent=message; el.style.background=error?'#8c443d':'#24231f'; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),4200); }
-  function loginNotice(message='') { $('#login-notice').textContent=message; }
-  function showLogin() { $('#admin-app').classList.add('hidden'); $('#login-shell').classList.remove('hidden'); $('#login-form').classList.remove('hidden'); $('#otp-form').classList.add('hidden'); $('#login-title').innerHTML='Welcome <em>back.</em>'; $('#login-desc').textContent='Masuk untuk mengelola website MY LITTLE JOURNEY.'; challengeId=null; }
-  function showApp(user) { $('#login-shell').classList.add('hidden'); $('#admin-app').classList.remove('hidden'); $('#admin-username').textContent=user?.username||'Administrator'; loadOverview(); }
-  $('#login-form').addEventListener('submit', async e=>{e.preventDefault();const btn=$('button[type=submit]',e.currentTarget);btn.disabled=true;loginNotice('Memeriksa akun dan mengirim kode OTP…');try{const f=new FormData(e.currentTarget);const d=await api('/auth/login',{method:'POST',body:{username:f.get('username'),password:f.get('password')}});challengeId=d.challengeId;$('#login-form').classList.add('hidden');$('#otp-form').classList.remove('hidden');$('#login-title').innerHTML='Check your <em>email.</em>';$('#login-desc').textContent='Masukkan kode verifikasi yang dikirim ke email administrator.';loginNotice(d.message);$('input[name=code]',$('#otp-form')).focus();}catch(err){loginNotice(err.message);}finally{btn.disabled=false;}});
-  $('#otp-form').addEventListener('submit',async e=>{e.preventDefault();const btn=$('button[type=submit]',e.currentTarget);btn.disabled=true;loginNotice('Memverifikasi kode…');try{const code=new FormData(e.currentTarget).get('code');const d=await api('/auth/verify',{method:'POST',body:{challengeId,code}});showApp(d.user);}catch(err){loginNotice(err.message);}finally{btn.disabled=false;}});
-  $('#back-login').addEventListener('click',showLogin);
-  $('#logout-btn').addEventListener('click',async()=>{try{await api('/auth/logout',{method:'POST'});}catch{}showLogin();});
-  function switchView(name){$$('.view').forEach(x=>x.classList.add('hidden'));$(`#view-${name}`).classList.remove('hidden');$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));const title={overview:'Overview',settings:'Website Settings',videos:'Video Manager',journals:'Journal Manager',account:'Account Settings'}[name];$('#page-title').textContent=title;$('#sidebar').classList.remove('open');if(name==='settings')loadSettings();if(name==='videos')loadVideos();if(name==='journals')loadJournals();}
-  $$('.nav-item').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
-  $$('[data-goto]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.goto)));
-  $('#mobile-menu').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
-  async function loadOverview(){try{const [v,j]=await Promise.all([api('/admin/content?kind=videos'),api('/admin/content?kind=journals')]);videoCache=v.items||[];journalCache=j.items||[];const all=[...videoCache,...journalCache];$('#stat-videos').textContent=videoCache.length;$('#stat-journals').textContent=journalCache.length;$('#stat-published').textContent=all.filter(x=>x.status==='published').length;}catch(e){toast(e.message,true);}}
-  function fieldHtml(name,label,type,value='',full=false,options=[]){const cls=full?'field full':'field';const val=esc(value??'');if(type==='textarea')return `<label class="${cls}">${label}<textarea name="${name}">${val}</textarea></label>`;if(type==='select')return `<label class="${cls}">${label}<select name="${name}">${options.map(o=>`<option ${o===value?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;if(type==='image')return `<div class="${cls}"><span>${label}</span><div class="image-field"><img class="preview" src="${val||'/media/images/journal-placeholder.svg'}" alt="Preview"><div class="upload-controls"><input type="hidden" name="${name}" value="${val}"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-upload-for="${name}"><small class="field-hint">JPG, PNG, WebP, GIF · Maksimal 8 MB. Upload ke penyimpanan foto website.</small></div></div></div>`;return `<label class="${cls}">${label}<input name="${name}" type="${type}" value="${val}" ${name==='date'?'':''}></label>`;}
-  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  async function loadSettings(){try{const d=await api('/admin/content?kind=settings');$('#settings-fields').innerHTML=settingsFields.map(([n,l,t])=>fieldHtml(n,l,t,d.settings?.[n]||'',t==='textarea')).join('');bindUploads($('#settings-fields'));}catch(e){toast(e.message,true);}}
-  async function uploadFile(input){const file=input.files?.[0];if(!file)return;const row=input.closest('.image-field');const fd=new FormData();fd.append('file',file);input.disabled=true;try{const d=await api('/admin/upload',{method:'POST',body:fd});const hidden=$(`input[type=hidden][name="${input.dataset.uploadFor}"]`,input.closest('.field'));hidden.value=d.url;$('.preview',row).src=d.url;toast('Foto berhasil diunggah. Simpan form untuk menerapkan perubahan.');}catch(e){toast(e.message,true);}finally{input.disabled=false;input.value='';}}
-  function bindUploads(root){$$('[data-upload-for]',root).forEach(i=>i.addEventListener('change',()=>uploadFile(i)));}
-  $('#settings-form').addEventListener('submit',async e=>{e.preventDefault();const content={};settingsFields.forEach(([n])=>{const el=$(`[name="${n}"]`,e.currentTarget);content[n]=el?.value||'';});try{const d=await api('/admin/content',{method:'POST',body:{kind:'settings',action:'save',content}});toast(d.message);}catch(err){toast(err.message,true);}});
-  function renderList(root,items,kind){if(!items.length){root.innerHTML='<div class="empty">Belum ada konten. Klik tombol tambah untuk membuat konten pertama.</div>';return;}root.innerHTML=items.map(x=>`<article class="content-row"><img src="${esc(x.cover||x.hero_image||'/media/images/journal-placeholder.svg')}" alt=""><div><h4>${esc(x.title||x.site_title||'Website Settings')}</h4><p>${esc(x.category||'Website')} · ${esc(x.date||'')} · <strong>${esc(x.status||'active')}</strong></p></div><div class="row-actions"><button data-edit="${esc(x.slug||'')}" data-kind="${kind}">Edit</button>${kind!=='settings'?`<button class="delete" data-delete="${esc(x.slug||'')}" data-kind="${kind}">Hapus</button>`:''}</div></article>`).join('');$$('[data-edit]',root).forEach(b=>b.addEventListener('click',()=>kind==='videos'?openVideo(items.find(x=>x.slug===b.dataset.edit)):openJournal(items.find(x=>x.slug===b.dataset.edit))));$$('[data-delete]',root).forEach(b=>b.addEventListener('click',()=>deleteContent(kind,b.dataset.delete)));}
-  async function loadVideos(){try{const d=await api('/admin/content?kind=videos');videoCache=d.items||[];renderList($('#videos-list'),videoCache,'videos');}catch(e){toast(e.message,true);}}
-  async function loadJournals(){try{const d=await api('/admin/content?kind=journals');journalCache=d.items||[];renderList($('#journals-list'),journalCache,'journals');}catch(e){toast(e.message,true);}}
-  function videoForm(item={}){const f=[['title','Judul Video','text'],['slug','URL Slug','text'],['description','Deskripsi','textarea'],['youtube_url','Link YouTube','url'],['category','Kategori','select'],['date','Tanggal Publikasi','date'],['cover','Thumbnail Video','image'],['status','Status','select']];$('#video-fields').innerHTML=f.map(([n,l,t])=>fieldHtml(n,l,t,item[n]||(n==='date'?new Date().toISOString().slice(0,10):n==='status'?'draft':''),t==='textarea',n==='category'?categories:n==='status'?['draft','published']:[])).join('');bindUploads($('#video-fields'));}
-  function journalForm(item={}){const f=[['title','Judul Artikel','text'],['slug','URL Slug','text'],['date','Tanggal Publikasi','date'],['category','Kategori','select'],['excerpt','Ringkasan Artikel','textarea'],['cover','Foto Sampul','image'],['body','Isi Artikel (teks/Markdown)','textarea'],['status','Status','select']];$('#journal-fields').innerHTML=f.map(([n,l,t])=>fieldHtml(n,l,t,item[n]||(n==='date'?new Date().toISOString().slice(0,10):n==='status'?'draft':''),n==='body'||n==='excerpt',n==='category'?categories:n==='status'?['draft','published']:[])).join('');bindUploads($('#journal-fields'));}
-  function openVideo(item){editingVideo=item||null;$('#video-form-title').textContent=item?'Edit Video':'Tambah Video';videoForm(item||{});$('#video-editor').classList.remove('hidden');$('#video-editor').scrollIntoView({behavior:'smooth',block:'start'});}
-  function openJournal(item){editingJournal=item||null;$('#journal-form-title').textContent=item?'Edit Jurnal':'Tulis Jurnal';journalForm(item||{});$('#journal-editor').classList.remove('hidden');$('#journal-editor').scrollIntoView({behavior:'smooth',block:'start'});}
-  $('#new-video').addEventListener('click',()=>openVideo());$('#new-journal').addEventListener('click',()=>openJournal());$('#refresh-videos').addEventListener('click',loadVideos);$('#refresh-journals').addEventListener('click',loadJournals);
-  $$('[data-close]').forEach(b=>b.addEventListener('click',()=>$('#'+b.dataset.close).classList.add('hidden')));
-  function formObject(form,fields){const o={};fields.forEach(n=>o[n]=$(`[name="${n}"]`,form)?.value||'');return o;}
-  $('#video-editor').addEventListener('submit',async e=>{e.preventDefault();const c=formObject(e.currentTarget,['title','slug','description','youtube_url','category','date','cover','status']);try{const d=await api('/admin/content',{method:'POST',body:{kind:'videos',action:'save',content:c,originalSlug:editingVideo?.slug||''}});toast(d.message);$('#video-editor').classList.add('hidden');await loadVideos();}catch(err){toast(err.message,true);}});
-  $('#journal-editor').addEventListener('submit',async e=>{e.preventDefault();const c=formObject(e.currentTarget,['title','slug','date','category','excerpt','cover','body','status']);try{const d=await api('/admin/content',{method:'POST',body:{kind:'journals',action:'save',content:c,originalSlug:editingJournal?.slug||''}});toast(d.message);$('#journal-editor').classList.add('hidden');await loadJournals();}catch(err){toast(err.message,true);}});
-  async function deleteContent(kind,slug){if(!confirm(`Hapus konten "${slug}"? Tindakan ini akan menghapus file konten dari repository.`))return;try{const d=await api('/admin/content',{method:'POST',body:{kind,action:'delete',slug}});toast(d.message);kind==='videos'?loadVideos():loadJournals();}catch(e){toast(e.message,true);}}
-  $('#password-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const d=await api('/admin/account',{method:'POST',body:{action:'password',currentPassword:f.get('currentPassword'),newPassword:f.get('newPassword')}});toast(d.message);showLogin();}catch(err){toast(err.message,true);}});
-  async function boot(){try{const d=await api('/admin/me');showApp(d.user);}catch{showLogin();}}
+
+  function toast(message, error = false) {
+    const el = $('#toast');
+    el.textContent = message;
+    el.style.background = error ? '#8c443d' : '#24231f';
+    el.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => el.classList.remove('show'), 4200);
+  }
+
+  function loginNotice(message = '') {
+    $('#login-notice').textContent = message;
+  }
+
+  function showLogin() {
+    $('#admin-app').classList.add('hidden');
+    $('#login-shell').classList.remove('hidden');
+    $('#login-form').classList.remove('hidden');
+    $('#login-title').innerHTML = 'Welcome <em>back.</em>';
+    $('#login-desc').textContent = 'Masuk untuk mengelola website MY LITTLE JOURNEY.';
+  }
+
+  function showApp(user) {
+    $('#login-shell').classList.add('hidden');
+    $('#admin-app').classList.remove('hidden');
+    $('#admin-username').textContent = user?.username || 'Administrator';
+    loadOverview();
+  }
+
+  $('#login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const btn = $('button[type=submit]', e.currentTarget);
+    btn.disabled = true;
+    loginNotice('Memeriksa username dan password…');
+
+    try {
+      const f = new FormData(e.currentTarget);
+      const d = await api('/auth/login', {
+        method: 'POST',
+        body: {
+          username: f.get('username'),
+          password: f.get('password')
+        }
+      });
+
+      showApp(d.user);
+    } catch (err) {
+      loginNotice(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#logout-btn').addEventListener('click', async () => {
+    try {
+      await api('/auth/logout', { method: 'POST' });
+    } catch {}
+    showLogin();
+  });
+
+  function switchView(name) {
+    $$('.view').forEach(x => x.classList.add('hidden'));
+    $(`#view-${name}`).classList.remove('hidden');
+
+    $$('.nav-item').forEach(x => {
+      x.classList.toggle('active', x.dataset.view === name);
+    });
+
+    const title = {
+      overview: 'Overview',
+      settings: 'Website Settings',
+      videos: 'Video Manager',
+      journals: 'Journal Manager',
+      account: 'Account Settings'
+    }[name];
+
+    $('#page-title').textContent = title;
+    $('#sidebar').classList.remove('open');
+
+    if (name === 'settings') loadSettings();
+    if (name === 'videos') loadVideos();
+    if (name === 'journals') loadJournals();
+  }
+
+  $$('.nav-item').forEach(b => {
+    b.addEventListener('click', () => switchView(b.dataset.view));
+  });
+
+  $$('[data-goto]').forEach(b => {
+    b.addEventListener('click', () => switchView(b.dataset.goto));
+  });
+
+  $('#mobile-menu').addEventListener('click', () => {
+    $('#sidebar').classList.toggle('open');
+  });
+
+  async function loadOverview() {
+    try {
+      const [v, j] = await Promise.all([
+        api('/admin/content?kind=videos'),
+        api('/admin/content?kind=journals')
+      ]);
+
+      videoCache = v.items || [];
+      journalCache = j.items || [];
+
+      const all = [...videoCache, ...journalCache];
+
+      $('#stat-videos').textContent = videoCache.length;
+      $('#stat-journals').textContent = journalCache.length;
+      $('#stat-published').textContent =
+        all.filter(x => x.status === 'published').length;
+    } catch (e) {
+      toast(e.message, true);
+    }
+  }
+
+  function fieldHtml(name, label, type, value = '', full = false, options = []) {
+    const cls = full ? 'field full' : 'field';
+    const val = esc(value ?? '');
+
+    if (type === 'textarea') {
+      return `<label class="${cls}">${label}<textarea name="${name}">${val}</textarea></label>`;
+    }
+
+    if (type === 'select') {
+      return `<label class="${cls}">${label}<select name="${name}">${options.map(o => `<option ${o === value ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+    }
+
+    if (type === 'image') {
+      return `<div class="${cls}"><span>${label}</span><div class="image-field"><img class="preview" src="${val || '/media/images/journal-placeholder.svg'}" alt="Preview"><div class="upload-controls"><input type="hidden" name="${name}" value="${val}"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-upload-for="${name}"><small class="field-hint">JPG, PNG, WebP, GIF · Maksimal 8 MB. Upload ke penyimpanan foto website.</small></div></div></div>`;
+    }
+
+    return `<label class="${cls}">${label}<input name="${name}" type="${type}" value="${val}"></label>`;
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[c]);
+  }
+
+  async function loadSettings() {
+    try {
+      const d = await api('/admin/content?kind=settings');
+      $('#settings-fields').innerHTML = settingsFields
+        .map(([n, l, t]) => fieldHtml(n, l, t, d.settings?.[n] || '', t === 'textarea'))
+        .join('');
+      bindUploads($('#settings-fields'));
+    } catch (e) {
+      toast(e.message, true);
+    }
+  }
+
+  async function uploadFile(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const row = input.closest('.image-field');
+    const fd = new FormData();
+    fd.append('file', file);
+    input.disabled = true;
+
+    try {
+      const d = await api('/admin/upload', {
+        method: 'POST',
+        body: fd
+      });
+
+      const hidden = $(`input[type=hidden][name="${input.dataset.uploadFor}"]`, input.closest('.field'));
+      hidden.value = d.url;
+      $('.preview', row).src = d.url;
+      toast('Foto berhasil diunggah. Simpan form untuk menerapkan perubahan.');
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      input.disabled = false;
+      input.value = '';
+    }
+  }
+
+  function bindUploads(root) {
+    $$('[data-upload-for]', root).forEach(i => {
+      i.addEventListener('change', () => uploadFile(i));
+    });
+  }
+
+  $('#settings-form').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const content = {};
+    settingsFields.forEach(([n]) => {
+      const el = $(`[name="${n}"]`, e.currentTarget);
+      content[n] = el?.value || '';
+    });
+
+    try {
+      const d = await api('/admin/content', {
+        method: 'POST',
+        body: { kind: 'settings', action: 'save', content }
+      });
+      toast(d.message);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  function renderList(root, items, kind) {
+    if (!items.length) {
+      root.innerHTML = '<div class="empty">Belum ada konten. Klik tombol tambah untuk membuat konten pertama.</div>';
+      return;
+    }
+
+    root.innerHTML = items.map(x => `
+      <article class="content-row">
+        <img src="${esc(x.cover || x.hero_image || '/media/images/journal-placeholder.svg')}" alt="">
+        <div>
+          <h4>${esc(x.title || x.site_title || 'Website Settings')}</h4>
+          <p>${esc(x.category || 'Website')} · ${esc(x.date || '')} · <strong>${esc(x.status || 'active')}</strong></p>
+        </div>
+        <div class="row-actions">
+          <button data-edit="${esc(x.slug || '')}" data-kind="${kind}">Edit</button>
+          ${kind !== 'settings' ? `<button class="delete" data-delete="${esc(x.slug || '')}" data-kind="${kind}">Hapus</button>` : ''}
+        </div>
+      </article>
+    `).join('');
+
+    $$('[data-edit]', root).forEach(b => {
+      b.addEventListener('click', () => {
+        kind === 'videos'
+          ? openVideo(items.find(x => x.slug === b.dataset.edit))
+          : openJournal(items.find(x => x.slug === b.dataset.edit));
+      });
+    });
+
+    $$('[data-delete]', root).forEach(b => {
+      b.addEventListener('click', () => deleteContent(kind, b.dataset.delete));
+    });
+  }
+
+  async function loadVideos() {
+    try {
+      const d = await api('/admin/content?kind=videos');
+      videoCache = d.items || [];
+      renderList($('#videos-list'), videoCache, 'videos');
+    } catch (e) {
+      toast(e.message, true);
+    }
+  }
+
+  async function loadJournals() {
+    try {
+      const d = await api('/admin/content?kind=journals');
+      journalCache = d.items || [];
+      renderList($('#journals-list'), journalCache, 'journals');
+    } catch (e) {
+      toast(e.message, true);
+    }
+  }
+
+  function videoForm(item = {}) {
+    const f = [
+      ['title','Judul Video','text'],
+      ['slug','URL Slug','text'],
+      ['description','Deskripsi','textarea'],
+      ['youtube_url','Link YouTube','url'],
+      ['category','Kategori','select'],
+      ['date','Tanggal Publikasi','date'],
+      ['cover','Thumbnail Video','image'],
+      ['status','Status','select']
+    ];
+
+    $('#video-fields').innerHTML = f.map(([n, l, t]) =>
+      fieldHtml(n, l, t, item[n] || (n === 'date' ? new Date().toISOString().slice(0, 10) : n === 'status' ? 'draft' : ''), t === 'textarea', n === 'category' ? categories : n === 'status' ? ['draft', 'published'] : [])
+    ).join('');
+
+    bindUploads($('#video-fields'));
+  }
+
+  function journalForm(item = {}) {
+    const f = [
+      ['title','Judul Artikel','text'],
+      ['slug','URL Slug','text'],
+      ['date','Tanggal Publikasi','date'],
+      ['category','Kategori','select'],
+      ['excerpt','Ringkasan Artikel','textarea'],
+      ['cover','Foto Sampul','image'],
+      ['body','Isi Artikel (teks/Markdown)','textarea'],
+      ['status','Status','select']
+    ];
+
+    $('#journal-fields').innerHTML = f.map(([n, l, t]) =>
+      fieldHtml(n, l, t, item[n] || (n === 'date' ? new Date().toISOString().slice(0, 10) : n === 'status' ? 'draft' : ''), n === 'body' || n === 'excerpt', n === 'category' ? categories : n === 'status' ? ['draft', 'published'] : [])
+    ).join('');
+
+    bindUploads($('#journal-fields'));
+  }
+
+  function openVideo(item) {
+    editingVideo = item || null;
+    $('#video-form-title').textContent = item ? 'Edit Video' : 'Tambah Video';
+    videoForm(item || {});
+    $('#video-editor').classList.remove('hidden');
+    $('#video-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function openJournal(item) {
+    editingJournal = item || null;
+    $('#journal-form-title').textContent = item ? 'Edit Jurnal' : 'Tulis Jurnal';
+    journalForm(item || {});
+    $('#journal-editor').classList.remove('hidden');
+    $('#journal-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('#new-video').addEventListener('click', () => openVideo());
+  $('#new-journal').addEventListener('click', () => openJournal());
+  $('#refresh-videos').addEventListener('click', loadVideos);
+  $('#refresh-journals').addEventListener('click', loadJournals);
+
+  $$('[data-close]').forEach(b => {
+    b.addEventListener('click', () => $('#' + b.dataset.close).classList.add('hidden'));
+  });
+
+  function formObject(form, fields) {
+    const o = {};
+    fields.forEach(n => o[n] = $(`[name="${n}"]`, form)?.value || '');
+    return o;
+  }
+
+  $('#video-editor').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const c = formObject(e.currentTarget, [
+      'title','slug','description','youtube_url','category','date','cover','status'
+    ]);
+
+    try {
+      const d = await api('/admin/content', {
+        method: 'POST',
+        body: {
+          kind: 'videos',
+          action: 'save',
+          content: c,
+          originalSlug: editingVideo?.slug || ''
+        }
+      });
+
+      toast(d.message);
+      $('#video-editor').classList.add('hidden');
+      await loadVideos();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  $('#journal-editor').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const c = formObject(e.currentTarget, [
+      'title','slug','date','category','excerpt','cover','body','status'
+    ]);
+
+    try {
+      const d = await api('/admin/content', {
+        method: 'POST',
+        body: {
+          kind: 'journals',
+          action: 'save',
+          content: c,
+          originalSlug: editingJournal?.slug || ''
+        }
+      });
+
+      toast(d.message);
+      $('#journal-editor').classList.add('hidden');
+      await loadJournals();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  async function deleteContent(kind, slug) {
+    if (!confirm(`Hapus konten "${slug}"? Tindakan ini akan menghapus file konten dari repository.`)) return;
+
+    try {
+      const d = await api('/admin/content', {
+        method: 'POST',
+        body: { kind, action: 'delete', slug }
+      });
+
+      toast(d.message);
+      kind === 'videos' ? loadVideos() : loadJournals();
+    } catch (e) {
+      toast(e.message, true);
+    }
+  }
+
+  $('#password-form').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const f = new FormData(e.currentTarget);
+
+    try {
+      const d = await api('/admin/account', {
+        method: 'POST',
+        body: {
+          action: 'password',
+          currentPassword: f.get('currentPassword'),
+          newPassword: f.get('newPassword')
+        }
+      });
+
+      toast(d.message);
+      showLogin();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  async function boot() {
+    try {
+      const d = await api('/admin/me');
+      showApp(d.user);
+    } catch {
+      showLogin();
+    }
+  }
+
   boot();
 })();
