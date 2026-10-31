@@ -1,91 +1,115 @@
 # MY LITTLE JOURNEY — Vinka Sri Aulia Rinata
 
-Static personal portfolio built with HTML, CSS, JavaScript and Pages CMS. Hosting target: Cloudflare Pages.
+Personal portfolio statis untuk Vinka Sri Aulia Rinata. Website menggunakan HTML, CSS, JavaScript, GitHub, Cloudflare Pages, dan Pages CMS. Tidak memerlukan server berbayar.
 
-## 1. Local preview
+## 1. Jalankan dan uji lokal
 
-Requirements: Node.js 18+.
+Persyaratan: Node.js 18 atau lebih baru.
 
 ```bash
 npm run build
 npx serve dist
 ```
 
-Open the local URL printed by `serve`. The build has no production dependencies and creates `dist/`.
+Buka alamat lokal yang ditampilkan. Folder `dist/` adalah hasil build dan dibuat ulang otomatis.
 
-## 2. GitHub
+## 2. Upload ke GitHub
 
-1. Create a new GitHub repository named `my-little-journey`.
-2. Extract this ZIP and upload the **contents** of this folder to the repository root (not the enclosing folder).
-3. Commit to the `main` branch.
+1. Buat repository baru bernama `my-little-journey` di https://github.com/new.
+2. Ekstrak ZIP ini.
+3. Upload **seluruh isi folder `my-little-journey`** ke root repository (jangan upload folder pembungkusnya).
+4. Pastikan `.pages.yml`, `content/`, `media/`, `assets/`, `scripts/`, dan `package.json` ikut terunggah.
+5. Commit ke branch `main`.
 
-## 3. Cloudflare Pages
+## 3. Deploy ke Cloudflare Pages
 
-1. Cloudflare Dashboard → Workers & Pages → Create application → Pages → Connect to Git.
-2. Choose the GitHub repository.
+1. Buka Cloudflare Dashboard → Workers & Pages → Create application → Pages → Connect to Git.
+2. Pilih repository GitHub.
 3. Framework preset: None.
-4. Build command: `npm run build`.
-5. Build output directory: `dist`.
-6. Root directory: `/` (default).
-7. Save and deploy. Each push to `main` triggers a deployment.
+4. Production branch: `main`.
+5. Build command: `npm run build`.
+6. Build output directory: `dist`.
+7. Root directory: `/`.
+8. Save and Deploy. Setiap commit baru akan memicu deployment.
 
-## 4. Pages CMS
+## 4. Aktifkan dashboard CMS
 
-1. Visit https://app.pagescms.org and sign in with the GitHub account that owns the repository.
-2. Install/authorize the Pages CMS GitHub App for this repository.
-3. Open the repository and select the `main` branch. Pages CMS reads `.pages.yml` at the repository root.
-4. Use **Videos** to create/edit/delete video entries and **Jurnal articles** to manage journal entries. Set `status` to `draft` while preparing and `published` to show it publicly.
-5. Upload cover images with the CMS image picker. Images are committed under `media/images/`.
-6. CMS edits are Git commits. Cloudflare then rebuilds and publishes them automatically.
+1. Buka https://app.pagescms.org/ dan login dengan akun GitHub yang memiliki repository.
+2. Berikan izin GitHub App Pages CMS hanya ke repository `my-little-journey` jika opsi tersebut tersedia.
+3. Buka repository dan branch `main`. Pages CMS membaca file `.pages.yml` dari root.
+4. Sidebar CMS memiliki **Website Settings**, **Video YouTube**, **Jurnal / Artikel**, serta media **Foto Website** dan **Foto Isi Jurnal**.
 
-**Important:** CMS access is controlled by GitHub authorization. Only authorize trusted accounts. Do not put passwords, API keys, or private data in content files.
+Pages CMS adalah dashboard eksternal berbasis GitHub, bukan halaman `/admin` yang ditanam di website. CMS menulis perubahan ke repository sebagai commit; Cloudflare kemudian membangun ulang website.
 
-## 5. Content rules
+## 5. Mengganti foto homepage
 
-- Video: paste a normal YouTube URL such as `https://www.youtube.com/watch?v=VIDEO_ID`. A watch page is generated at `/watch.html?slug=your-slug` and embeds the video using YouTube's privacy-enhanced host.
-- Journal: enter a unique lowercase `slug` using hyphens, for example `my-first-trip`. Article detail is shareable at `/article.html?slug=my-first-trip`.
-- For new entries, the slug should match the JSON filename (without `.json`). If Pages CMS creates a different filename, rename the entry file to `<slug>.json` in GitHub.
-- Dates use `YYYY-MM-DD`. Latest published content appears first.
-- Drafts are excluded from public listings and detail pages.
+Di Pages CMS buka **Website Settings**. Kamu dapat mengubah:
 
-## 6. Replace personal photos
+- Foto Hero
+- Foto About Me
+- Foto Portfolio Traveling
+- Foto Portfolio Modeling
+- Foto Portfolio Bridal Makeup
+- Thumbnail Video Default
+- Sampul Jurnal Default
 
-Replace the placeholder images in `media/images/` while keeping the same filenames:
+Pilih field gambar, upload foto, lalu simpan. Foto tersimpan di `media/images/`. Gunakan JPG atau WebP yang sudah dikompres; hero sebaiknya portrait, foto portfolio landscape. Jangan mengunggah foto yang tidak memiliki izin publikasi.
 
-| File | Replace with |
-|---|---|
-| `hero-placeholder.svg` | Main hero portrait |
-| `about.svg` | About Me photo |
-| `travel.svg` | Travel portfolio photo |
-| `modeling.svg` | Modeling photo |
-| `bridal.svg` | Bridal makeup documentation |
-| `video-placeholder.svg` | Default video thumbnail |
-| `journal-placeholder.svg` | Default journal cover |
+Di menu media **Foto Website**, kamu juga dapat mengunggah dan mengelola gambar yang nanti dipilih dari field gambar.
 
-Recommended: optimized JPG/WebP, landscape for cards, portrait for hero. You may also upload through Pages CMS and set the relevant `cover` field. Do not use images you do not have permission to publish.
+## 6. Mengunggah video YouTube
 
-## 7. Custom domain `www.vinkasar.my.id`
+1. Upload video ke YouTube terlebih dahulu dan pastikan pemilik video mengizinkan embedding.
+2. Pages CMS → **Video YouTube** → New entry.
+3. Isi Judul Video, URL Slug unik (huruf kecil dan tanda hubung), Deskripsi, Link YouTube, Kategori, Tanggal Publikasi, dan Thumbnail.
+4. Set Status ke `draft` untuk disimpan privat dari daftar publik atau `published` untuk ditampilkan.
+5. Simpan. Video tampil di `/video.html`; halaman pemutarnya memakai `/watch.html?slug=slug-video`.
 
-1. First deploy the site and confirm its `*.pages.dev` URL works.
-2. In Cloudflare Pages → your project → Custom domains → Set up a custom domain, enter `www.vinkasar.my.id` and follow the validation flow.
-3. Cloudflare will show the DNS record it needs. At IDWebhost, open DNS management and **inspect existing records before changing anything**.
-4. Add/adjust only the record Cloudflare explicitly requests for `www` (commonly a CNAME to `<project>.pages.dev`). Do not delete MX, TXT, or unrelated A/CNAME records. If a conflicting `www` record exists, record its current value before replacing it.
-5. If Cloudflare requires the domain zone to be onboarded to Cloudflare, pause and review the impact before changing nameservers. Do not change nameservers as part of this basic Pages setup unless you intentionally decide to migrate DNS and have inventoried all existing records.
-6. Wait for DNS validation. Cloudflare provisions HTTPS automatically after the custom domain is active.
+Contoh URL YouTube: `https://www.youtube.com/watch?v=VIDEO_ID`.
 
-The apex `vinkasar.my.id` is not configured in this project; add it separately only if desired and after reviewing existing DNS. Keep the current email-related MX/TXT records intact.
+## 7. Menulis jurnal
 
-## 8. What is and is not configured
+1. Pages CMS → **Jurnal / Artikel** → New entry.
+2. Isi Judul, URL Slug unik, Tanggal, Kategori, Ringkasan, Foto Sampul, dan Isi Artikel.
+3. Isi artikel menggunakan editor rich-text (Markdown). Gunakan heading `##` untuk subjudul.
+4. Status `draft` menyimpan artikel sebagai draft; `published` menampilkannya di `/jurnal.html`.
+5. Simpan. Halaman detail dapat dibagikan melalui `/article.html?slug=slug-artikel`.
 
-- Public website, video list/player, journal list/detail, responsive navigation and scroll interactions are included.
-- CMS is configured to edit repository content through GitHub; it is not a custom password-based `/admin` page. Use the hosted Pages CMS interface.
-- YouTube hosts the actual video files. This site only embeds them.
-- The initial video and journal entries are drafts; publish real entries from CMS after replacing placeholder copy/media.
-- No personal achievements, employment history, contact email, phone number, or unprovided biography has been invented.
+Gambar di dalam artikel diunggah melalui editor dan disimpan di `media/articles/`.
 
-## 9. Troubleshooting
+## 8. Mengedit profil dan teks homepage
 
-- If content is missing after a CMS commit, check the `status` field is `published`, then inspect Cloudflare deployment logs.
-- If an image is broken, check its path begins with `/media/images/` and that the file exists in the repository.
-- If a YouTube player is blank, confirm the video is public/unlisted and embedding is allowed by its owner.
-- If a custom domain is pending, check the exact DNS record shown by Cloudflare and wait for propagation. Do not remove unrelated DNS records.
+Pages CMS → **Website Settings**. Nama pemilik, tagline, intro hero, heading dan paragraf About Me, deskripsi Portfolio, Behind the Scenes, My Goals, quote, link Instagram, dan username Instagram dapat diubah dari sana. Perubahan teks tersebut akan tampil setelah deployment selesai.
+
+## 9. Cara kerja draft dan publish
+
+- `draft`: tidak ditampilkan pada daftar video/jurnal publik.
+- `published`: masuk ke daftar publik dan diurutkan dari tanggal terbaru.
+- Jangan menggunakan slug yang sama untuk dua entri.
+- Jika mengubah slug, gunakan nama file JSON yang sesuai dengan slug. Periksa file di GitHub bila CMS tidak mengganti nama file otomatis.
+
+## 10. Domain www.vinkasar.my.id
+
+1. Deploy dan pastikan URL `*.pages.dev` berfungsi lebih dahulu.
+2. Cloudflare Pages → project → Custom domains → masukkan `www.vinkasar.my.id`.
+3. Ikuti record DNS persis seperti yang diminta Cloudflare.
+4. Di IDWebhost, periksa DNS yang sudah ada sebelum menambah/mengubah record. Jangan menghapus MX, TXT, atau record lain yang tidak terkait.
+5. Jika Cloudflare meminta migrasi nameserver/zone, berhenti dulu dan inventarisasi seluruh DNS aktif sebelum menyetujuinya.
+6. HTTPS akan aktif setelah domain tervalidasi dan sertifikat diterbitkan.
+
+## 11. Keamanan dan batasan
+
+- Jangan bagikan akses GitHub/CMS kepada orang yang tidak dipercaya.
+- Jangan menyimpan password atau API key di file website.
+- Video disimpan dan di-host oleh YouTube; CMS hanya menyimpan URL dan thumbnail.
+- Website tidak mengirim formulir email dan tidak meminta nomor telepon.
+- Foto awal adalah placeholder, bukan foto pribadi pemilik.
+- CMS dan Cloudflare belum terhubung ke akun pengguna sampai langkah otorisasi dan deployment dilakukan.
+
+## 12. Troubleshooting
+
+- Konten tidak muncul: periksa status `published`, tanggal, dan deployment Cloudflare.
+- Foto tidak tampil: pastikan file berada di media yang benar dan field gambar berisi path `/media/...`.
+- Video tidak bisa diputar: pastikan video public/unlisted dan embedding tidak dibatasi pemiliknya.
+- CMS tidak melihat menu: pastikan `.pages.yml` berada di root branch `main` dan refresh/reopen repository di Pages CMS.
+- Build gagal: jalankan `npm run build` lokal dan baca pesan error.
