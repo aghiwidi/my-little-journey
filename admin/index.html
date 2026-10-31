@@ -17,7 +17,7 @@
       <form id="login-form" class="form-stack">
         <label>Username<input name="username" autocomplete="username" value="vinkasar263121" required></label>
         <label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Masukkan password admin" required minlength="12"></label>
-        <button class="btn btn-dark" type="submit">Login & kirim kode OTP <span>↗</span></button>
+        <button class="btn btn-dark" type="submit">Login ke Dashboard <span>↗</span></button>
       </form>
       <form id="otp-form" class="form-stack hidden">
         <label>Kode verifikasi email<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required></label>
@@ -71,7 +71,7 @@
         </section>
 
         <section class="view hidden" id="view-account">
-          <div class="view-intro"><p class="eyebrow">SECURITY & ACCESS</p><h1>Account <em>Settings.</em></h1><p class="muted">Ganti password administrator. Setiap login tetap memerlukan OTP email.</p></div>
+          <div class="view-intro"><p class="eyebrow">SECURITY & ACCESS</p><h1>Account <em>Settings.</em></h1><p class="muted">Ganti password administrator. Gunakan username dan password administrator untuk masuk.</p></div>
           <form id="password-form" class="panel-card password-card form-stack"><h3>Ubah Password</h3><label>Password saat ini<input name="currentPassword" type="password" autocomplete="current-password" required></label><label>Password baru<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required><small>Minimal 12 karakter.</small></label><button class="btn btn-dark" type="submit">Perbarui Password ↗</button></form>
         </section>
         <div id="toast" class="toast" role="status"></div>

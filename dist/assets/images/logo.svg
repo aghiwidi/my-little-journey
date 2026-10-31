@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" role="img" aria-labelledby="title desc">
+<title id="title">MY LITTLE JOURNEY</title><desc id="desc">A minimal monogram logo for MY LITTLE JOURNEY</desc>
+<g transform="translate(8 8)">
+  <rect x="3" y="3" width="116" height="116" rx="58" fill="#242321"/>
+  <path d="M34 82V38h8l20 27 20-27h8v44h-9V52L62 78 43 52v30z" fill="#F7F6F3"/>
+  <path d="M90 26c9 7 14 17 14 29" fill="none" stroke="#B6A58B" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="102" cy="22" r="4" fill="#B6A58B"/>
+</g>
+<g fill="#242321">
+  <text x="148" y="60" font-family="Arial,sans-serif" font-size="25" font-weight="700" letter-spacing="5">MY LITTLE</text>
+  <text x="145" y="103" font-family="Georgia,serif" font-size="43" font-style="italic" letter-spacing="1">JOURNEY</text>
+</g>
+<path d="M150 117H430" stroke="#B6A58B" stroke-width="2"/>
+</svg>
