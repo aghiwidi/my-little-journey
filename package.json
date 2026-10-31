@@ -1,0 +1,7 @@
+{
+  "name": "my-little-journey",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static personal portfolio for Vinka Sri Aulia Rinata",
+  "scripts": {"build": "node scripts/build.js", "preview": "npx serve dist"}
+}
