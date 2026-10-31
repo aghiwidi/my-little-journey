@@ -80,3 +80,10 @@ Konten disimpan sebagai JSON di GitHub. Setiap penyimpanan akan memicu deploymen
 - Jangan menghapus resource D1/R2 yang sudah digunakan.
 - Jangan menjalankan migrasi database ulang secara manual jika tabel sudah tersedia.
 - Buat backup repository sebelum mengganti seluruh file.
+
+
+## Logo dan editor foto
+- Identitas logo dan favicon menggunakan monogram huruf **V**.
+- Admin menyediakan editor crop sebelum upload untuk foto Hero, About, Portfolio, thumbnail video, dan sampul jurnal.
+- Foto dapat diatur dengan rasio 4:5, 3:2, 16:9, 1:1, atau rasio asli; posisi dapat digeser dan diperbesar sebelum diunggah.
+- Hasil crop diunggah sebagai JPEG ke bucket R2.

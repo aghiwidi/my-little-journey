@@ -198,7 +198,7 @@
     }
 
     if (type === 'image') {
-      return `<div class="${cls}"><span>${label}</span><div class="image-field"><img class="preview" src="${val || '/media/images/journal-placeholder.svg'}" alt="Preview"><div class="upload-controls"><input type="hidden" name="${name}" value="${val}"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-upload-for="${name}"><small class="field-hint">JPG, PNG, WebP, GIF · Maksimal 8 MB. Upload ke penyimpanan foto website.</small></div></div></div>`;
+      return `<div class="${cls}"><span>${label}</span><div class="image-field"><img class="preview" src="${val || '/media/images/journal-placeholder.svg'}" alt="Preview"><div class="upload-controls"><input type="hidden" name="${name}" value="${val}"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-upload-for="${name}"><small class="field-hint">JPG, PNG, WebP, GIF · Maksimal 8 MB. Foto dapat di-crop sebelum diunggah.</small></div></div></div>`;
     }
 
     return `<label class="${cls}">${label}<input name="${name}" type="${type}" value="${val}"></label>`;
@@ -226,30 +226,168 @@
     }
   }
 
+  let cropState = null;
+
+  function cropAspectForField(name) {
+    if (name === 'hero_image' || name === 'about_image') return '4:5';
+    if (name === 'travel_image' || name === 'modeling_image' || name === 'bridal_image') return '3:2';
+    if (name === 'cover') return '16:9';
+    return '4:5';
+  }
+
+  function ensureCropModal() {
+    if ($('#crop-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'crop-modal';
+    modal.className = 'crop-modal hidden';
+    modal.innerHTML = `
+      <section class="crop-dialog" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+        <header class="crop-head"><div><p class="eyebrow">IMAGE EDITOR</p><h2 id="crop-title">Sesuaikan foto</h2><p class="crop-subtitle">Geser foto untuk mengatur posisi, lalu pilih rasio yang sesuai.</p></div><button type="button" class="icon-btn" id="crop-close" aria-label="Tutup">✕</button></header>
+        <div class="crop-stage"><canvas id="crop-canvas" width="960" height="600"></canvas><span class="crop-hint">Geser foto untuk mengatur area potong</span></div>
+        <div class="crop-controls">
+          <label>Rasio foto<select id="crop-ratio"><option value="4:5">4:5 · Portrait</option><option value="3:2">3:2 · Landscape</option><option value="16:9">16:9 · Wide</option><option value="1:1">1:1 · Square</option><option value="original">Asli · Original</option></select></label>
+          <label class="zoom-control">Zoom <input id="crop-zoom" type="range" min="1" max="3" step="0.01" value="1"><output id="crop-zoom-value">100%</output></label>
+        </div>
+        <footer class="crop-actions"><button type="button" class="btn btn-light" id="crop-cancel">Batal</button><button type="button" class="btn btn-dark" id="crop-apply">Potong & Upload ↗</button></footer>
+      </section>`;
+    document.body.appendChild(modal);
+    $('#crop-close').addEventListener('click', closeCrop);
+    $('#crop-cancel').addEventListener('click', closeCrop);
+    $('#crop-ratio').addEventListener('change', () => {
+      if (!cropState) return;
+      setCropAspect($('#crop-ratio').value);
+      drawCrop();
+    });
+    $('#crop-zoom').addEventListener('input', () => {
+      if (!cropState) return;
+      cropState.zoom = Number($('#crop-zoom').value);
+      clampCropCenter(); drawCrop();
+      $('#crop-zoom-value').value = `${Math.round(cropState.zoom * 100)}%`;
+      $('#crop-zoom-value').textContent = `${Math.round(cropState.zoom * 100)}%`;
+    });
+    $('#crop-apply').addEventListener('click', uploadCroppedImage);
+    const canvas = $('#crop-canvas');
+    canvas.addEventListener('pointerdown', e => {
+      if (!cropState) return;
+      cropState.dragging = true;
+      cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!cropState?.dragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const dx = (e.clientX - cropState.lastX) * (canvas.width / rect.width);
+      const dy = (e.clientY - cropState.lastY) * (canvas.height / rect.height);
+      cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+      cropState.centerX -= dx * cropState.cropW / canvas.width;
+      cropState.centerY -= dy * cropState.cropH / canvas.height;
+      clampCropCenter(); drawCrop();
+    });
+    const stop = () => { if (cropState) cropState.dragging = false; };
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+    modal.addEventListener('click', e => { if (e.target === modal) closeCrop(); });
+  }
+
+  function setCropAspect(value) {
+    const image = cropState.image;
+    const aspect = value === 'original' ? image.naturalWidth / image.naturalHeight : value.split(':').map(Number).reduce((a,b) => a / b);
+    cropState.aspect = aspect;
+    const maxW = Math.min(image.naturalWidth, image.naturalHeight * aspect);
+    cropState.baseW = maxW;
+    cropState.baseH = maxW / aspect;
+    cropState.centerX = image.naturalWidth / 2;
+    cropState.centerY = image.naturalHeight / 2;
+    cropState.zoom = 1;
+    $('#crop-zoom').value = '1';
+    $('#crop-zoom-value').textContent = '100%';
+    const canvas = $('#crop-canvas');
+    canvas.width = 960;
+    canvas.height = Math.round(960 / aspect);
+    if (canvas.height > 680) { canvas.height = 680; canvas.width = Math.round(680 * aspect); }
+    cropState.cropW = cropState.baseW;
+    cropState.cropH = cropState.baseH;
+    clampCropCenter();
+  }
+
+  function clampCropCenter() {
+    const s = cropState;
+    s.cropW = s.baseW / s.zoom;
+    s.cropH = s.baseH / s.zoom;
+    s.centerX = Math.max(s.cropW / 2, Math.min(s.image.naturalWidth - s.cropW / 2, s.centerX));
+    s.centerY = Math.max(s.cropH / 2, Math.min(s.image.naturalHeight - s.cropH / 2, s.centerY));
+  }
+
+  function drawCrop() {
+    const s = cropState;
+    if (!s) return;
+    const canvas = $('#crop-canvas');
+    const ctx = canvas.getContext('2d');
+    const sx = s.centerX - s.cropW / 2;
+    const sy = s.centerY - s.cropH / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f1eee8'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(s.image, sx, sy, s.cropW, s.cropH, 0, 0, canvas.width, canvas.height);
+  }
+
+  function closeCrop() {
+    $('#crop-modal')?.classList.add('hidden');
+    if (cropState?.input) { cropState.input.disabled = false; cropState.input.value = ''; }
+    cropState = null;
+  }
+
+  async function uploadCroppedImage() {
+    if (!cropState) return;
+    const s = cropState;
+    const button = $('#crop-apply');
+    button.disabled = true; button.textContent = 'Mengunggah foto…';
+    try {
+      const out = document.createElement('canvas');
+      const maxWidth = Math.min(2200, Math.round(s.cropW));
+      out.width = maxWidth;
+      out.height = Math.round(maxWidth / s.aspect);
+      out.getContext('2d').drawImage(s.image,
+        s.centerX - s.cropW / 2, s.centerY - s.cropH / 2, s.cropW, s.cropH,
+        0, 0, out.width, out.height);
+      const blob = await new Promise((resolve, reject) => out.toBlob(b => b ? resolve(b) : reject(new Error('Gagal memproses foto.')), 'image/jpeg', .9));
+      const file = new File([blob], `${(s.originalName || 'photo').replace(/\.[^.]+$/, '')}-cropped.jpg`, { type: 'image/jpeg' });
+      const fd = new FormData(); fd.append('file', file);
+      const d = await api('/admin/upload', { method: 'POST', body: fd });
+      const row = s.input.closest('.image-field');
+      const hidden = $(`input[type=hidden][name="${s.input.dataset.uploadFor}"]`, s.input.closest('.field'));
+      hidden.value = d.url;
+      $('.preview', row).src = d.url;
+      closeCrop();
+      toast('Foto berhasil dipotong dan diunggah. Simpan form untuk menerapkan perubahan.');
+    } catch (e) {
+      toast(e.message || 'Gagal mengunggah foto.', true);
+    } finally {
+      button.disabled = false; button.textContent = 'Potong & Upload ↗';
+      if (cropState) s.input.disabled = false;
+    }
+  }
+
   async function uploadFile(input) {
     const file = input.files?.[0];
     if (!file) return;
-
-    const row = input.closest('.image-field');
-    const fd = new FormData();
-    fd.append('file', file);
+    if (!file.type.startsWith('image/')) { toast('Pilih file gambar terlebih dahulu.', true); input.value = ''; return; }
+    if (file.size > 8 * 1024 * 1024) { toast('Ukuran gambar maksimal 8 MB.', true); input.value = ''; return; }
+    ensureCropModal();
     input.disabled = true;
-
     try {
-      const d = await api('/admin/upload', {
-        method: 'POST',
-        body: fd
-      });
-
-      const hidden = $(`input[type=hidden][name="${input.dataset.uploadFor}"]`, input.closest('.field'));
-      hidden.value = d.url;
-      $('.preview', row).src = d.url;
-      toast('Foto berhasil diunggah. Simpan form untuk menerapkan perubahan.');
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      image.src = objectUrl;
+      await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error('Foto tidak dapat dibuka.')); });
+      cropState = { input, image, originalName: file.name, dragging: false };
+      $('#crop-ratio').value = cropAspectForField(input.dataset.uploadFor);
+      setCropAspect($('#crop-ratio').value);
+      drawCrop();
+      $('#crop-modal').classList.remove('hidden');
+      URL.revokeObjectURL(objectUrl);
     } catch (e) {
-      toast(e.message, true);
-    } finally {
-      input.disabled = false;
-      input.value = '';
+      input.disabled = false; input.value = '';
+      toast(e.message || 'Gagal membuka foto.', true);
     }
   }
 

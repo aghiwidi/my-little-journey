@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<rect x="2" y="2" width="60" height="60" rx="30" fill="#242321"/>
-<path d="M13 45V19h5l14 17 14-17h5v26h-6V28L32 43 19 28v17z" fill="#F7F6F3"/>
-<path d="M48 10c5 4 8 9 8 15" fill="none" stroke="#B6A58B" stroke-width="2.5" stroke-linecap="round"/>
-<circle cx="56" cy="9" r="2.5" fill="#B6A58B"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="V monogram MY LITTLE JOURNEY">
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#242321"/>
+  <path d="M17 17h7l8 25 8-25h7L35 49h-6L17 17Z" fill="#F7F6F3"/>
+  <path d="M46 13c3 2 5 5 6 9" fill="none" stroke="#B6A58B" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="51.5" cy="11.5" r="2.2" fill="#B6A58B"/>
 </svg>
