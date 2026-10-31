@@ -1,0 +1,21 @@
+name = "my-little-journey-admin-api"
+main = "worker/src/index.js"
+compatibility_date = "2026-10-31"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "my-little-journey-admin"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "worker/migrations"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "my-little-journey-media"
+
+[vars]
+SITE_ORIGINS = "https://vinkasar.my.id,https://www.vinkasar.my.id"
+ADMIN_USERNAME = "vinkasar263121"
+GITHUB_OWNER = "REPLACE_WITH_GITHUB_USERNAME_OR_ORG"
+GITHUB_REPO = "my-little-journey"
+GITHUB_BRANCH = "main"
+R2_PUBLIC_BASE_URL = "https://media.vinkasar.my.id"

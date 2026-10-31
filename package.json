@@ -1,7 +1,16 @@
 {
   "name": "my-little-journey",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Static personal portfolio for Vinka Sri Aulia Rinata",
-  "scripts": {"build": "node scripts/build.js", "preview": "npx serve dist"}
+  "description": "MY LITTLE JOURNEY personal portfolio with a private Cloudflare admin dashboard",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "preview": "npx serve dist",
+    "admin:setup": "node scripts/init-admin.mjs",
+    "worker:deploy": "wrangler deploy",
+    "db:migrate:remote": "wrangler d1 migrations apply my-little-journey-admin --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
 }

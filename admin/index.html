@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#f6f5f1">
+  <title>Admin — MY LITTLE JOURNEY</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <div class="login-shell" id="login-shell">
+    <div class="login-brand"><span>MY LITTLE <i>JOURNEY</i></span><small>VINKA SRI AULIA RINATA · ADMIN</small></div>
+    <section class="login-card">
+      <p class="eyebrow">PRIVATE WORKSPACE</p><h1 id="login-title">Welcome <em>back.</em></h1>
+      <p class="muted" id="login-desc">Masuk untuk mengelola website MY LITTLE JOURNEY.</p>
+      <form id="login-form" class="form-stack">
+        <label>Username<input name="username" autocomplete="username" value="vinkasar263121" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Masukkan password admin" required minlength="12"></label>
+        <button class="btn btn-dark" type="submit">Login & kirim kode OTP <span>↗</span></button>
+      </form>
+      <form id="otp-form" class="form-stack hidden">
+        <label>Kode verifikasi email<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required></label>
+        <p class="muted small">Kode 6 digit dikirim ke email administrator dan berlaku selama 5 menit.</p>
+        <button class="btn btn-dark" type="submit">Verifikasi & masuk <span>↗</span></button>
+        <button class="btn btn-light" type="button" id="back-login">Kembali</button>
+      </form>
+      <p class="notice" id="login-notice" role="status"></p>
+      <div class="login-foot">Every Journey Tells a Story · Secure Admin</div>
+    </section>
+  </div>
+
+  <div class="app hidden" id="admin-app">
+    <aside class="sidebar" id="sidebar">
+      <a class="side-brand" href="/admin/"><span>MY LITTLE <i>JOURNEY</i></span><small>ADMIN STUDIO</small></a>
+      <div class="side-label">WORKSPACE</div>
+      <nav class="side-nav">
+        <button class="nav-item active" data-view="overview"><b>◫</b> Overview</button>
+        <button class="nav-item" data-view="settings"><b>⚙</b> Website Settings</button>
+        <button class="nav-item" data-view="videos"><b>▷</b> Video Manager</button>
+        <button class="nav-item" data-view="journals"><b>▤</b> Journal Manager</button>
+        <button class="nav-item" data-view="account"><b>♙</b> Account Settings</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Admin session active<button id="logout-btn" class="logout">↪ Logout</button></div>
+    </aside>
+    <main class="main-panel">
+      <header class="topbar"><button class="mobile-menu" id="mobile-menu" aria-label="Menu">☰</button><div><p class="eyebrow">MY LITTLE JOURNEY / ADMIN</p><h2 id="page-title">Overview</h2></div><div class="top-user"><span class="avatar">V</span><span><strong id="admin-username">Admin</strong><small>Administrator</small></span></div></header>
+      <div class="content-area">
+        <section class="view" id="view-overview">
+          <div class="welcome"><div><p class="eyebrow">YOUR CREATIVE SPACE</p><h1>Good day, <em>Vinka.</em></h1><p class="muted">Kelola cerita, foto, video, dan perjalanan kreatifmu dari satu tempat.</p></div><a class="btn btn-dark" href="/" target="_blank" rel="noreferrer">Lihat website ↗</a></div>
+          <div class="stats-grid"><article class="stat-card"><span>VIDEO</span><strong id="stat-videos">—</strong><small>Total konten video</small></article><article class="stat-card"><span>JURNAL</span><strong id="stat-journals">—</strong><small>Total artikel</small></article><article class="stat-card"><span>PUBLISHED</span><strong id="stat-published">—</strong><small>Konten dipublikasikan</small></article></div>
+          <div class="panel-card"><div class="panel-heading"><div><p class="eyebrow">QUICK ACCESS</p><h3>Manage your journey</h3></div></div><div class="quick-grid"><button data-goto="settings"><span>◈</span><b>Website Settings</b><small>Foto, profil, tagline, dan homepage</small></button><button data-goto="videos"><span>▷</span><b>Video Manager</b><small>Tambah dan kelola video YouTube</small></button><button data-goto="journals"><span>▤</span><b>Journal Manager</b><small>Tulis dan publikasikan jurnal</small></button></div></div>
+          <p class="footnote">Perubahan konten disimpan ke repository dan akan tampil setelah Cloudflare Pages menyelesaikan deployment.</p>
+        </section>
+
+        <section class="view hidden" id="view-settings">
+          <div class="view-intro"><p class="eyebrow">PERSONALIZE YOUR WEBSITE</p><h1>Website <em>Settings.</em></h1><p class="muted">Ubah profil, teks homepage, tautan sosial, dan foto utama.</p></div>
+          <form id="settings-form" class="panel-card editor-form"><div class="form-grid" id="settings-fields"></div><div class="form-actions"><span class="muted small">Simpan perubahan untuk memperbarui website.</span><button class="btn btn-dark" type="submit">Simpan pengaturan ↗</button></div></form>
+        </section>
+
+        <section class="view hidden" id="view-videos">
+          <div class="view-intro row-between"><div><p class="eyebrow">YOUR VIDEO COLLECTION</p><h1>Video <em>Manager.</em></h1><p class="muted">Kelola video YouTube, thumbnail, kategori, dan status publikasi.</p></div><button class="btn btn-dark" id="new-video">+ Tambah Video</button></div>
+          <div class="panel-card"><div class="table-tools"><h3>Daftar Video</h3><button class="btn btn-light btn-small" id="refresh-videos">↻ Refresh</button></div><div id="videos-list" class="content-list"></div></div>
+          <form id="video-editor" class="panel-card editor-form hidden"><div class="panel-heading"><h3 id="video-form-title">Tambah Video</h3><button type="button" class="icon-btn" data-close="video-editor">✕</button></div><div class="form-grid" id="video-fields"></div><div class="form-actions"><button class="btn btn-light" type="button" data-close="video-editor">Batal</button><button class="btn btn-dark" type="submit">Simpan Video ↗</button></div></form>
+        </section>
+
+        <section class="view hidden" id="view-journals">
+          <div class="view-intro row-between"><div><p class="eyebrow">STORIES & REFLECTIONS</p><h1>Journal <em>Manager.</em></h1><p class="muted">Tulis cerita, unggah sampul, simpan draft, dan publikasikan artikel.</p></div><button class="btn btn-dark" id="new-journal">+ Tulis Jurnal</button></div>
+          <div class="panel-card"><div class="table-tools"><h3>Daftar Jurnal</h3><button class="btn btn-light btn-small" id="refresh-journals">↻ Refresh</button></div><div id="journals-list" class="content-list"></div></div>
+          <form id="journal-editor" class="panel-card editor-form hidden"><div class="panel-heading"><h3 id="journal-form-title">Tulis Jurnal</h3><button type="button" class="icon-btn" data-close="journal-editor">✕</button></div><div class="form-grid" id="journal-fields"></div><div class="form-actions"><button class="btn btn-light" type="button" data-close="journal-editor">Batal</button><button class="btn btn-dark" type="submit">Simpan Jurnal ↗</button></div></form>
+        </section>
+
+        <section class="view hidden" id="view-account">
+          <div class="view-intro"><p class="eyebrow">SECURITY & ACCESS</p><h1>Account <em>Settings.</em></h1><p class="muted">Ganti password administrator. Setiap login tetap memerlukan OTP email.</p></div>
+          <form id="password-form" class="panel-card password-card form-stack"><h3>Ubah Password</h3><label>Password saat ini<input name="currentPassword" type="password" autocomplete="current-password" required></label><label>Password baru<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required><small>Minimal 12 karakter.</small></label><button class="btn btn-dark" type="submit">Perbarui Password ↗</button></form>
+        </section>
+        <div id="toast" class="toast" role="status"></div>
+      </div>
+    </main>
+  </div>
+  <script src="/admin/assets/admin.js" defer></script>
+</body></html>
