@@ -198,7 +198,7 @@
     }
 
     if (type === 'image') {
-      return `<div class="${cls}"><span>${label}</span><div class="image-field"><img class="preview" src="${val || '/media/images/journal-placeholder.svg'}" alt="Preview"><div class="upload-controls"><input type="hidden" name="${name}" value="${val}"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-upload-for="${name}"><small class="field-hint">JPG, PNG, WebP, GIF · Maksimal 8 MB. Foto dapat di-crop sebelum diunggah.</small></div></div></div>`;
+      return `<div class="${cls}"><span>${label}</span><div class="image-field"><img class="preview" src="${val || '/media/images/journal-placeholder.svg'}" alt="Preview"><div class="upload-controls"><input type="hidden" name="${name}" value="${val}"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-upload-for="${name}"><small class="field-hint">${name === 'cover' ? 'Thumbnail disarankan 1280 × 720 px (rasio 16:9), JPG/PNG/WebP, maksimal 8 MB. Crop otomatis 16:9 tersedia.' : 'JPG, PNG, WebP, GIF · Maksimal 8 MB. Foto dapat di-crop sebelum diunggah.'}</small></div></div></div>`;
     }
 
     return `<label class="${cls}">${label}<input name="${name}" type="${type}" value="${val}"></label>`;
@@ -471,22 +471,117 @@
   }
 
   function videoForm(item = {}) {
+    const legacyUrl = item.video_url || item.youtube_url || '';
+    const inferredPlatform = item.platform || (String(legacyUrl).includes('tiktok.com') ? 'tiktok' : 'youtube');
     const f = [
       ['title','Judul Video','text'],
       ['slug','URL Slug','text'],
       ['description','Deskripsi','textarea'],
-      ['youtube_url','Link YouTube','url'],
+      ['platform','Platform Video','select'],
+      ['video_url','Link Video','url'],
       ['category','Kategori','select'],
       ['date','Tanggal Publikasi','date'],
       ['cover','Thumbnail Video','image'],
       ['status','Status','select']
     ];
 
-    $('#video-fields').innerHTML = f.map(([n, l, t]) =>
-      fieldHtml(n, l, t, item[n] || (n === 'date' ? new Date().toISOString().slice(0, 10) : n === 'status' ? 'draft' : ''), t === 'textarea', n === 'category' ? categories : n === 'status' ? ['draft', 'published'] : [])
-    ).join('');
+    const values = {
+      ...item,
+      platform: inferredPlatform,
+      video_url: legacyUrl
+    };
+
+    $('#video-fields').innerHTML = `
+      <div class="video-source-note field full">
+        <strong>Thumbnail otomatis</strong>
+        <span>YouTube: thumbnail diambil otomatis. TikTok: thumbnail dicoba melalui layanan oEmbed. Anda tetap bisa menggantinya dengan upload sendiri.</span>
+      </div>
+      ${f.map(([n, l, t]) =>
+        fieldHtml(n, l, t, values[n] || (n === 'date' ? new Date().toISOString().slice(0, 10) : n === 'status' ? 'draft' : n === 'platform' ? 'youtube' : ''), t === 'textarea', n === 'category' ? categories : n === 'status' ? ['draft', 'published'] : n === 'platform' ? ['youtube', 'tiktok'] : [])
+      ).join('')}
+      <div class="video-auto-preview field full" id="video-auto-preview" aria-live="polite">
+        <span>Pratinjau thumbnail otomatis akan muncul setelah link video diisi.</span>
+      </div>
+    `;
 
     bindUploads($('#video-fields'));
+
+    const platform = $('[name="platform"]', $('#video-fields'));
+    const urlInput = $('[name="video_url"]', $('#video-fields'));
+    const coverInput = $('[name="cover"]', $('#video-fields'));
+    const preview = $('#video-auto-preview');
+    let lastAutoCover = item.auto_cover || '';
+    let previewTimer;
+
+    const updateAutoPreview = async () => {
+      const p = platform.value;
+      const url = urlInput.value.trim();
+      if (!url) {
+        preview.innerHTML = '<span>Masukkan link YouTube atau TikTok untuk mengambil thumbnail otomatis.</span>';
+        return;
+      }
+
+      let thumb = '';
+      let resolvedUrl = url;
+
+      if (p === 'youtube') {
+        const id = getYouTubeId(url);
+        if (!id) {
+          preview.innerHTML = '<span>Link YouTube belum valid. Gunakan link video, Shorts, atau youtu.be.</span>';
+          return;
+        }
+        thumb = `https://img.youtube.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`;
+      } else {
+        preview.innerHTML = '<span>Mengambil thumbnail TikTok…</span>';
+        try {
+          const result = await api(`/admin/video-preview?platform=tiktok&url=${encodeURIComponent(url)}`);
+          thumb = result.thumbnail || '';
+          resolvedUrl = result.canonical_url || url;
+        } catch (error) {
+          preview.innerHTML = `<span>Thumbnail TikTok otomatis belum tersedia. Anda bisa upload thumbnail sendiri. (${esc(error.message)})</span>`;
+          return;
+        }
+      }
+
+      if (!thumb) {
+        preview.innerHTML = '<span>Thumbnail otomatis tidak tersedia. Silakan upload thumbnail sendiri.</span>';
+        return;
+      }
+
+      if (p === 'tiktok' && resolvedUrl && resolvedUrl !== url) {
+        urlInput.value = resolvedUrl;
+      }
+
+      preview.innerHTML = `<img src="${esc(thumb)}" alt="Pratinjau thumbnail otomatis"><span>Thumbnail otomatis ditemukan. Upload thumbnail sendiri jika ingin menggantinya.</span>`;
+      const currentCover = coverInput.value.trim();
+      if (!currentCover || currentCover === lastAutoCover) {
+        coverInput.value = thumb;
+        const imagePreview = $('.preview', coverInput.closest('.field'));
+        if (imagePreview) imagePreview.src = thumb;
+        lastAutoCover = thumb;
+      }
+      values.video_url = resolvedUrl;
+    };
+
+    platform.addEventListener('change', updateAutoPreview);
+    urlInput.addEventListener('input', () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updateAutoPreview, 650);
+    });
+    if (legacyUrl) updateAutoPreview();
+  }
+
+  function getYouTubeId(value) {
+    try {
+      const url = new URL(value);
+      if (url.hostname === 'youtu.be' || url.hostname.endsWith('.youtu.be')) return url.pathname.split('/').filter(Boolean)[0] || '';
+      if (url.searchParams.get('v')) return url.searchParams.get('v');
+      const parts = url.pathname.split('/').filter(Boolean);
+      const marker = parts.findIndex(x => ['embed', 'shorts', 'live'].includes(x));
+      return marker >= 0 ? (parts[marker + 1] || '') : '';
+    } catch {
+      return '';
+    }
   }
 
   function journalForm(item = {}) {
@@ -543,8 +638,11 @@
     e.preventDefault();
 
     const c = formObject(e.currentTarget, [
-      'title','slug','description','youtube_url','category','date','cover','status'
+      'title','slug','description','platform','video_url','category','date','cover','status'
     ]);
+    c.youtube_url = c.platform === 'youtube' ? c.video_url : '';
+    c.created_at = editingVideo?.created_at || new Date().toISOString();
+    c.updated_at = new Date().toISOString();
 
     try {
       const d = await api('/admin/content', {

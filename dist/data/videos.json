@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "title": "Tugas 3 Public Speaking Universitas Terbuka",
+    "slug": "tugas3",
+    "description": "",
+    "youtube_url": "https://youtu.be/5edkWtrqHVU?si=YcACSGgv5jQY2kWC",
+    "category": "Communication Studies",
+    "date": "2026-11-05",
+    "cover": "https://media.vinkasar.my.id/uploads/2026-11-05/397dfce4-80d8-49bd-8346-1e6a42547db4.jpg",
+    "status": "published",
+    "platform": "youtube",
+    "video_url": "https://youtu.be/5edkWtrqHVU?si=YcACSGgv5jQY2kWC"
+  },
+  {
+    "title": "Tugas 3 Bahasa inggris komunikasi",
+    "slug": "tugas3bahasainggris",
+    "description": "",
+    "youtube_url": "https://vt.tiktok.com/ZSpYK31gq/",
+    "category": "Communication Studies",
+    "date": "2026-11-05",
+    "cover": "https://media.vinkasar.my.id/uploads/2026-11-05/b8b7ad22-66e8-4d5c-977b-e0ab3c98bef6.jpg",
+    "status": "published",
+    "platform": "tiktok",
+    "video_url": "https://vt.tiktok.com/ZSpYK31gq/"
+  }
+]

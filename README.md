@@ -68,7 +68,10 @@ Jangan memasukkan password, token, atau secret ke file repository.
 ## Mengelola konten
 
 - Website Settings: ubah teks, foto Hero, About, portfolio, dan Instagram.
-- Video Manager: kelola video YouTube dan status draft/published.
+- Video Manager: kelola video YouTube dan TikTok, thumbnail otomatis, upload thumbnail manual dengan crop 16:9, dan status draft/published.
+- Thumbnail YouTube diambil dari YouTube thumbnail endpoint; thumbnail TikTok diminta melalui TikTok oEmbed. Jika tidak tersedia, upload thumbnail sendiri (disarankan 1280 × 720 px, rasio 16:9, JPG/PNG/WebP, maksimal 8 MB).
+- Pemutar YouTube menggunakan rasio 16:9; pemutar TikTok menggunakan tampilan vertikal 9:16 dan menyesuaikan ukuran layar.
+- Daftar video diurutkan berdasarkan tanggal publikasi terbaru, lalu waktu pembuatan terbaru jika tanggalnya sama.
 - Journal Manager: kelola artikel, kategori, sampul, dan status draft/published.
 - Account Settings: ganti password admin.
 

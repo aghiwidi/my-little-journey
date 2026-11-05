@@ -1,1 +1,90 @@
-(()=>{const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const slug=new URLSearchParams(location.search).get('slug');fetch('/data/videos.json').then(r=>r.json()).then(items=>{const v=items.find(x=>x.slug===slug&&x.status==='published'),el=document.getElementById('watch-content');if(!v){el.innerHTML='<h1>Video not found.</h1><a href="/video.html">← Back to videos</a>';return}let id='';try{const u=new URL(v.youtube_url);id=u.hostname.includes('youtu.be')?u.pathname.slice(1):u.searchParams.get('v')}catch{}if(!id){el.innerHTML='<h1>Invalid YouTube URL</h1>';return}document.title=v.title+' — MY LITTLE JOURNEY';el.innerHTML=`<a class="article-back" href="/video.html">← BACK TO VIDEOS</a><p class="eyebrow" style="margin-top:40px">${esc(v.category)} · ${esc(v.date)}</p><h1>${esc(v.title)}</h1><div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><div class="article-body"><p>${esc(v.description)}</p></div>`}).catch(()=>document.getElementById('watch-content').textContent='Video tidak dapat dimuat.')})();
+(() => {
+  'use strict';
+
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+
+  function youtubeId(value) {
+    try {
+      const url = new URL(value);
+      if (url.hostname.includes('youtu.be')) return url.pathname.split('/').filter(Boolean)[0] || '';
+      if (url.searchParams.get('v')) return url.searchParams.get('v');
+      const parts = url.pathname.split('/').filter(Boolean);
+      const marker = parts.findIndex(part => ['embed', 'shorts', 'live'].includes(part));
+      return marker >= 0 ? (parts[marker + 1] || '') : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function renderYoutube(video, url, container) {
+    const id = youtubeId(url);
+    if (!id) {
+      container.innerHTML = '<p class="empty-state">Link YouTube tidak valid.</p>';
+      return;
+    }
+    container.innerHTML = `<div class="video-frame video-frame-youtube"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}" title="${esc(video.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
+  }
+
+  function renderTikTok(video, url, container) {
+    let videoId = '';
+    try {
+      const parsed = new URL(url);
+      const match = parsed.pathname.match(/\/video\/(\d+)/);
+      if (match) videoId = match[1];
+    } catch {}
+
+    container.innerHTML = `
+      <div class="video-frame video-frame-tiktok">
+        <blockquote class="tiktok-embed" cite="${esc(url)}" ${videoId ? `data-video-id="${esc(videoId)}"` : ''} style="max-width:100%;min-width:0;">
+          <section><a target="_blank" rel="noopener noreferrer" href="${esc(url)}">Tonton video ini di TikTok</a></section>
+        </blockquote>
+      </div>
+      <p class="video-platform-link"><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Buka video di TikTok ↗</a></p>
+    `;
+
+    const oldScript = document.querySelector('script[data-tiktok-embed]');
+    if (oldScript) oldScript.remove();
+    const script = document.createElement('script');
+    script.src = 'https://www.tiktok.com/embed.js';
+    script.async = true;
+    script.dataset.tiktokEmbed = 'true';
+    document.body.appendChild(script);
+  }
+
+  const slug = new URLSearchParams(location.search).get('slug');
+  const container = document.getElementById('watch-content');
+
+  fetch('/data/videos.json')
+    .then(response => {
+      if (!response.ok) throw new Error('Video tidak dapat dimuat.');
+      return response.json();
+    })
+    .then(items => {
+      const video = items.find(item => item.slug === slug && item.status === 'published');
+      if (!video) {
+        container.innerHTML = '<h1>Video tidak ditemukan.</h1><a href="/video.html">← Kembali ke video</a>';
+        return;
+      }
+
+      const platform = video.platform || (String(video.video_url || video.youtube_url || '').includes('tiktok.com') ? 'tiktok' : 'youtube');
+      const videoUrl = video.video_url || video.youtube_url || '';
+      document.title = `${video.title} — MY LITTLE JOURNEY`;
+
+      container.innerHTML = `
+        <a class="article-back" href="/video.html">← KEMBALI KE VIDEO</a>
+        <p class="eyebrow" style="margin-top:40px">${esc(video.category)} · ${esc(video.date)}</p>
+        <h1>${esc(video.title)}</h1>
+        <div id="video-player-mount"></div>
+        <div class="article-body"><p>${esc(video.description || '')}</p></div>
+      `;
+
+      const mount = document.getElementById('video-player-mount');
+      if (platform === 'tiktok') renderTikTok(video, videoUrl, mount);
+      else renderYoutube(video, videoUrl, mount);
+    })
+    .catch(() => {
+      container.innerHTML = '<p class="empty-state">Video tidak dapat dimuat. Silakan coba lagi.</p>';
+    });
+})();

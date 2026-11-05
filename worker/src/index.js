@@ -174,7 +174,10 @@ async function listContent(env, kind) {
     if (data) out.push({ ...data.content, _file: f.name, _sha: data.sha });
   }
 
-  out.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  out.sort((a, b) =>
+    String(b.date || '').localeCompare(String(a.date || '')) ||
+    String(b.created_at || '').localeCompare(String(a.created_at || ''))
+  );
   return { items: out };
 }
 
@@ -364,6 +367,50 @@ export default {
           });
         }
 
+        if (url.pathname === '/admin/video-preview' && request.method === 'GET') {
+          const platform = url.searchParams.get('platform') || '';
+          const target = url.searchParams.get('url') || '';
+
+          if (platform !== 'tiktok') {
+            return response(request, env, { error: 'Pratinjau otomatis hanya diperlukan untuk TikTok.' }, 400);
+          }
+
+          let parsed;
+          try {
+            parsed = new URL(target);
+          } catch {
+            return response(request, env, { error: 'URL TikTok tidak valid.' }, 400);
+          }
+
+          if (!['tiktok.com', 'www.tiktok.com', 'vt.tiktok.com', 'vm.tiktok.com'].includes(parsed.hostname)) {
+            return response(request, env, { error: 'Gunakan link dari TikTok.' }, 400);
+          }
+
+          const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(target)}`;
+          const previewResponse = await fetch(oembedUrl, {
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (!previewResponse.ok) {
+            return response(request, env, {
+              error: 'TikTok tidak menyediakan thumbnail otomatis untuk link ini. Silakan upload thumbnail sendiri.'
+            }, 422);
+          }
+
+          const previewData = await previewResponse.json();
+          const embedHtml = String(previewData.html || '');
+          const idMatch = embedHtml.match(/data-video-id=["'](\d+)["']/);
+          const canonicalMatch = embedHtml.match(/cite=["']([^"']+)["']/);
+
+          return response(request, env, {
+            ok: true,
+            thumbnail: previewData.thumbnail_url || '',
+            title: previewData.title || '',
+            canonical_url: canonicalMatch?.[1] || target,
+            video_id: idMatch?.[1] || ''
+          });
+        }
+
         if (url.pathname === '/admin/content' && request.method === 'GET') {
           const kind = url.searchParams.get('kind') || 'settings';
           return response(request, env, await listContent(env, kind));
@@ -434,6 +481,28 @@ export default {
               ok: true,
               message: 'Konten dihapus.'
             });
+          }
+
+          if (kind === 'videos') {
+            const platform = String(content.platform || (String(content.youtube_url || '').includes('tiktok.com') ? 'tiktok' : 'youtube'));
+            const videoUrl = String(content.video_url || content.youtube_url || '').trim();
+            let parsedVideoUrl;
+            try {
+              parsedVideoUrl = new URL(videoUrl);
+            } catch {
+              return response(request, env, { error: 'Link video tidak valid.' }, 400);
+            }
+            const host = parsedVideoUrl.hostname.toLowerCase();
+            const isYoutube = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be'].includes(host);
+            const isTiktok = ['tiktok.com', 'www.tiktok.com', 'vt.tiktok.com', 'vm.tiktok.com'].includes(host);
+            if ((platform === 'youtube' && !isYoutube) || (platform === 'tiktok' && !isTiktok) || !['youtube', 'tiktok'].includes(platform)) {
+              return response(request, env, { error: 'Platform tidak sesuai dengan link video.' }, 400);
+            }
+            content.platform = platform;
+            content.video_url = videoUrl;
+            content.youtube_url = platform === 'youtube' ? videoUrl : '';
+            if (!content.created_at) content.created_at = new Date().toISOString();
+            content.updated_at = new Date().toISOString();
           }
 
           const old = await readGithubFile(env, path);

@@ -70,9 +70,19 @@ for (const file of listFiles(root)) {
 }
 
 const videos = readJsonDirectory('content/videos')
-  .filter(item => item && item.status === 'published');
+  .filter(item => item && item.status === 'published')
+  .map(item => ({
+    ...item,
+    platform: item.platform || (String(item.video_url || item.youtube_url || '').includes('tiktok.com') ? 'tiktok' : 'youtube'),
+    video_url: item.video_url || item.youtube_url || ''
+  }))
+  .sort((a, b) =>
+    String(b.date || '').localeCompare(String(a.date || '')) ||
+    String(b.created_at || '').localeCompare(String(a.created_at || ''))
+  );
 const journals = readJsonDirectory('content/jurnal')
-  .filter(item => item && item.status === 'published');
+  .filter(item => item && item.status === 'published')
+  .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
 const dataDirectory = path.join(dist, 'data');
 fs.mkdirSync(dataDirectory, { recursive: true });
