@@ -472,7 +472,9 @@
 
   function videoForm(item = {}) {
     const legacyUrl = item.video_url || item.youtube_url || '';
-    const inferredPlatform = item.platform || (String(legacyUrl).includes('tiktok.com') ? 'tiktok' : 'youtube');
+    const inferredPlatform = /(^|\.)tiktok\.com$/i.test((() => { try { return new URL(legacyUrl).hostname; } catch { return ''; } })())
+      ? 'tiktok'
+      : (item.platform || 'youtube');
     const f = [
       ['title','Judul Video','text'],
       ['slug','URL Slug','text'],
@@ -514,8 +516,10 @@
     let previewTimer;
 
     const updateAutoPreview = async () => {
-      const p = platform.value;
       const url = urlInput.value.trim();
+      const isTikTokUrl = /(^|\.)tiktok\.com$/i.test((() => { try { return new URL(url).hostname; } catch { return ''; } })());
+      const p = isTikTokUrl ? 'tiktok' : platform.value;
+      if (isTikTokUrl && platform.value !== 'tiktok') platform.value = 'tiktok';
       if (!url) {
         preview.innerHTML = '<span>Masukkan link YouTube atau TikTok untuk mengambil thumbnail otomatis.</span>';
         return;

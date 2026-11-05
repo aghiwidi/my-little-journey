@@ -18,10 +18,19 @@
     }
   }
 
+  function platformFromUrl(value, fallback = 'youtube') {
+    try {
+      const host = new URL(value).hostname.toLowerCase();
+      if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) return 'tiktok';
+      if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be'].includes(host)) return 'youtube';
+    } catch {}
+    return fallback;
+  }
+
   function renderYoutube(video, url, container) {
     const id = youtubeId(url);
     if (!id) {
-      container.innerHTML = '<p class="empty-state">Link YouTube tidak valid.</p>';
+      container.innerHTML = '<p class="empty-state">Link YouTube tidak valid. Periksa kembali URL video di Admin.</p>';
       return;
     }
     container.innerHTML = `<div class="video-frame video-frame-youtube"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}" title="${esc(video.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
@@ -68,8 +77,9 @@
         return;
       }
 
-      const platform = video.platform || (String(video.video_url || video.youtube_url || '').includes('tiktok.com') ? 'tiktok' : 'youtube');
       const videoUrl = video.video_url || video.youtube_url || '';
+      // Always trust the actual URL host over a stale/mistyped platform field.
+      const platform = platformFromUrl(videoUrl, video.platform || 'youtube');
       document.title = `${video.title} — MY LITTLE JOURNEY`;
 
       container.innerHTML = `

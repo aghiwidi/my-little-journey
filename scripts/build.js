@@ -73,7 +73,9 @@ const videos = readJsonDirectory('content/videos')
   .filter(item => item && item.status === 'published')
   .map(item => ({
     ...item,
-    platform: item.platform || (String(item.video_url || item.youtube_url || '').includes('tiktok.com') ? 'tiktok' : 'youtube'),
+    platform: /(^|\.)tiktok\.com$/i.test((() => { try { return new URL(item.video_url || item.youtube_url || '').hostname; } catch { return ''; } })())
+      ? 'tiktok'
+      : (item.platform || 'youtube'),
     video_url: item.video_url || item.youtube_url || ''
   }))
   .sort((a, b) =>
